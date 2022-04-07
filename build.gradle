@@ -9,8 +9,8 @@ allprojects {
   apply plugin: 'idea'
   apply plugin: 'maven-publish'
 
-  sourceCompatibility = 1.8
-  targetCompatibility = 1.8
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
 }
 
 ext.slf4jVersion = '1.7.25'
