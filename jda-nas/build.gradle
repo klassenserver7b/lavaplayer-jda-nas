@@ -7,11 +7,12 @@ ext.moduleName = 'lavaplayer-jda-nas'
 version = '1.0.6'
 
 dependencies {
-  compile project(':udp-queue')
+  implementation project(":udp-queue")
 
-  compile "org.slf4j:slf4j-api:$slf4jVersion"
+  implementation "com.github.whya5448:lavaplayer-common:e9c364d496"
+  compileOnly "org.slf4j:slf4j-api:$slf4jVersion"
 
-  compileOnly 'net.dv8tion:JDA:4.BETA.0_1'
+  compileOnly "net.dv8tion:JDA:5.0.0-alpha.9"
 }
 
 task sourceJar(type: Jar) {
