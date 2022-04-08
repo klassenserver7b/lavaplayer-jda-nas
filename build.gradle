@@ -1,9 +1,8 @@
-allprojects {
+subprojects {
   repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
   }
-
 }
 
 ext.slf4jVersion = '1.7.25'
@@ -12,14 +11,15 @@ group = 'com.sedmelluq'
 
 subprojects {
   apply plugin: 'java'
+  apply plugin: 'java-library'
   apply plugin: 'maven-publish'
 
-  sourceCompatibility = JavaVersion.VERSION_17
-  targetCompatibility = JavaVersion.VERSION_17
-
   java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+
     withSourcesJar()
-    withJavadocJar()
+    //withJavadocJar()
   }
 
   publishing {
