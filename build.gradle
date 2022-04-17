@@ -15,22 +15,11 @@ subprojects {
   apply plugin: 'maven-publish'
 
   java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 
     withSourcesJar()
     //withJavadocJar()
-  }
-
-  publishing {
-    publications {
-      maven(MavenPublication) {
-        groupId project.group
-        artifactId project.name
-        version project.version
-        from components.java
-      }
-    }
   }
 }
 
@@ -42,27 +31,27 @@ def getBuildParameters(base, bits) {
 
   if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     return [
-        'identifier': "win-${bitSuffix}",
-        'library': "${base}.dll",
-        'setupArguments': ["-DBITZ:STRING=${bits}", '-A', (bits == 64 ? 'x64' : 'Win32')],
-        'buildArguments': ['--config', 'Release'],
-        'env': [:]
+            'identifier': "win-${bitSuffix}",
+            'library': "${base}.dll",
+            'setupArguments': ["-DBITZ:STRING=${bits}", '-A', (bits == 64 ? 'x64' : 'Win32')],
+            'buildArguments': ['--config', 'Release'],
+            'env': [:]
     ]
   } else if (Os.isFamily(Os.FAMILY_MAC)) {
     return [
-        'identifier': 'darwin',
-        'library': "lib${base}.dylib",
-        'setupArguments': ["-DBITZ:STRING=${bits}"],
-        'buildArguments': [],
-        'env': ['CXXFLAGS': "-m${bits}", 'CFLAGS': "-m${bits}", 'LDFLAGS': "-m${bits}"]
+            'identifier': 'darwin',
+            'library': "lib${base}.dylib",
+            'setupArguments': ["-DBITZ:STRING=${bits}"],
+            'buildArguments': [],
+            'env': ['CXXFLAGS': "-m${bits}", 'CFLAGS': "-m${bits}", 'LDFLAGS': "-m${bits}"]
     ]
   } else {
     return [
-        'identifier': "linux-${bitSuffix}",
-        'library': "lib${base}.so",
-        'setupArguments': ["-DBITZ:STRING=${bits}"],
-        'buildArguments': [],
-        'env': ['CXXFLAGS': "-m${bits}", 'CFLAGS': "-m${bits}", 'LDFLAGS': "-m${bits}"]
+            'identifier': "linux-${bitSuffix}",
+            'library': "lib${base}.so",
+            'setupArguments': ["-DBITZ:STRING=${bits}"],
+            'buildArguments': [],
+            'env': ['CXXFLAGS': "-m${bits}", 'CFLAGS': "-m${bits}", 'LDFLAGS': "-m${bits}"]
     ]
   }
 }

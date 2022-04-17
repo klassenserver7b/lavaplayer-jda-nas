@@ -1,3 +1,5 @@
+import java.nio.file.Files
+
 plugins {
     id 'org.sonarqube' version '2.7.1'
 }
@@ -5,23 +7,35 @@ plugins {
 ext.moduleName = 'udp-queue'
 version = '1.1.0.3'
 
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId project.group
+            artifactId project.name
+            version project.version
+            from components.java
+        }
+    }
+}
+
 java {
     withSourcesJar()
 }
 
 dependencies {
-    api "com.github.whya5448.lavaplayer:common:1.3.78.1"
+    api "com.github.whya5448.lavaplayer:lavaplayer-common:1.3.78.6"
 
     compileOnly "org.slf4j:slf4j-api:$slf4jVersion"
 }
 
-jar {
-    doFirst {
+task copyNatives {
+    if (!file("${projectDir}/src/main/resources/natives").exists()) {
         copy {
             from "${project(":udp-queue-natives").projectDir}/dist"
-            into "${sourceSets.main.resources.srcDirs[0]}/natives"
+            into "${projectDir}/src/main/resources/natives"
         }
     }
+    assert Files.exists(file("${projectDir}/src/main/resources/natives").toPath())
 }
-
+compileJava.dependsOn(copyNatives)
 //compileJava.dependsOn(':udp-queue-natives:checkNatives')
