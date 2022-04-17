@@ -10,42 +10,40 @@ code and also sends them from there. This way it is unaffected by GC pauses shor
 
 #### Maven package
 
-Replace `x.y.z` with the latest version number
+Replace `x.y.z.m` with the latest version number
 
-* Repository: jcenter
-* Artifact: **com.sedmelluq:jda-nas:x.y.z**
+* Repository: https://jitpack.io
+* Artifact: **com.github.whya5448.lavaplayer-jda-nas:jda-nas:x.y.z.m**
 
 Using in Gradle:
 
 ```groovy
 repositories {
-    jcenter()
+    maven {
+        url 'https://jitpack.io'
+    }
 }
 
 dependencies {
-    compile 'com.sedmelluq:jda-nas:x.y.z'
+    implementation 'com.github.whya5448.lavaplayer-jda-nas:jda-nas:x.y.z.m'
 }
 ```
 
 Using in Maven:
 
 ```xml
-
 <repositories>
     <repository>
-        <id>central</id>
-        <name>bintray</name>
-        <url>http://jcenter.bintray.com</url>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
     </repository>
 </repositories>
 
-<dependencies>
 <dependency>
-    <groupId>com.sedmelluq</groupId>
+    <groupId>com.github.whya5448.lavaplayer-jda-nas:jda-nas</groupId>
     <artifactId>jda-nas</artifactId>
-    <version>x.y.z</version>
+    <version>x.y.z.m</version>
 </dependency>
-</dependencies>
 ```
 
 ## Usage
