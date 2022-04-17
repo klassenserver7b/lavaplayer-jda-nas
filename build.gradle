@@ -111,6 +111,7 @@ def createBuildTask(tasksHolder, config, bits) {
     environment parameters.env
   }
 
+/*
   def deployTask = tasksHolder.create("${taskBase}-deploy") { doLast {
     copy {
       from distDirectory
@@ -124,16 +125,23 @@ def createBuildTask(tasksHolder, config, bits) {
       into deployDirectory
     }
   }}
+*/
 
   if (config.setupDependency) {
     setupTask.dependsOn(config.setupDependency)
   }
 
   buildTask.dependsOn(setupTask)
-  deployTask.dependsOn(buildTask)
-  config.compileTask.dependsOn(deployTask)
+  //deployTask.dependsOn(buildTask)
+  //config.compileTask.dependsOn(deployTask)
+  config.compileTask.dependsOn(buildTask)
 
+  if (!file("${distDirectory}/${parameters.library}").exists()) {
+    config.checkTask.dependsOn(buildTask)
+  }
+  /*
   if (!file("${deployDirectory}/${parameters.library}").exists()) {
     config.checkTask.dependsOn(deployTask)
   }
+  */
 }
