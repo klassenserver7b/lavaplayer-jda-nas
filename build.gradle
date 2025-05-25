@@ -26,6 +26,35 @@ subprojects {
 
 import org.apache.tools.ant.taskdefs.condition.Os
 
+def isMuslSystem() {
+  if (!Os.isFamily(Os.FAMILY_UNIX) || Os.isFamily(Os.FAMILY_MAC)) {
+    return false
+  }
+  
+  // Check if we're running in Alpine (musl-based)
+  try {
+    def osRelease = new File('/etc/os-release')
+    if (osRelease.exists()) {
+      def content = osRelease.text
+      if (content.contains('ID=alpine') || content.contains('ID="alpine"')) {
+        return true
+      }
+    }
+    
+    // Alternative: check ldd version for musl
+    def process = ['ldd', '--version'].execute()
+    process.waitFor()
+    def output = process.text
+    if (output.contains('musl')) {
+      return true
+    }
+  } catch (Exception e) {
+    // Ignore exceptions, fall back to false
+  }
+  
+  return false
+}
+
 def getBuildParameters(base, bits) {
   def bitSuffix = (bits == 32) ? 'x86' : 'x86-64'
 
@@ -46,8 +75,13 @@ def getBuildParameters(base, bits) {
             'env': ['CXXFLAGS': "-m${bits}", 'CFLAGS': "-m${bits}", 'LDFLAGS': "-m${bits}"]
     ]
   } else {
+    def identifier = "linux-${bitSuffix}"
+    if (isMuslSystem()) {
+      identifier = "linux-${bitSuffix}-musl"
+    }
+    
     return [
-            'identifier': "linux-${bitSuffix}",
+            'identifier': identifier,
             'library': "lib${base}.so",
             'setupArguments': ["-DBITZ:STRING=${bits}"],
             'buildArguments': [],

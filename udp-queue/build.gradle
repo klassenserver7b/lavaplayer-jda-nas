@@ -29,13 +29,42 @@ dependencies {
 }
 
 task copyNatives {
-    if (!file("${projectDir}/src/main/resources/natives").exists()) {
-        copy {
-            from "${project(":udp-queue-natives").projectDir}/dist"
-            into "${projectDir}/src/main/resources/natives"
+    doLast {
+        def nativesDir = file("${projectDir}/src/main/resources/natives")
+        def distDir = file("${project(":udp-queue-natives").projectDir}/dist")
+        
+        if (!nativesDir.exists()) {
+            nativesDir.mkdirs()
+        }
+        
+        if (distDir.exists()) {
+            copy {
+                from distDir
+                into nativesDir
+                include "**/*.dll"
+                include "**/*.so" 
+                include "**/*.dylib"
+            }
+            
+            println "Copied natives from ${distDir} to ${nativesDir}"
+            
+            // List all copied files for verification
+            nativesDir.eachFileRecurse { file ->
+                if (file.isFile() && (file.name.endsWith('.dll') || file.name.endsWith('.so') || file.name.endsWith('.dylib'))) {
+                    println "  - ${file.path.substring(nativesDir.path.length() + 1)}"
+                }
+            }
+        } else {
+            println "Warning: Native dist directory does not exist: ${distDir}"
         }
     }
-    assert Files.exists(file("${projectDir}/src/main/resources/natives").toPath())
 }
+
+// Ensure natives directory exists after copying
+copyNatives.doLast {
+    def nativesPath = file("${projectDir}/src/main/resources/natives").toPath()
+    assert Files.exists(nativesPath), "Natives directory was not created properly"
+}
+
 compileJava.dependsOn(copyNatives)
 //compileJava.dependsOn(':udp-queue-natives:checkNatives')
