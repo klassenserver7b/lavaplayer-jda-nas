@@ -12,3 +12,9 @@ def buildTaskConfig = [
 
 createBuildTask(tasks, buildTaskConfig, 32)
 createBuildTask(tasks, buildTaskConfig, 64)
+
+// Add musl build for 64-bit only
+if (org.apache.tools.ant.taskdefs.condition.Os.isFamily(org.apache.tools.ant.taskdefs.condition.Os.FAMILY_UNIX) && 
+    !org.apache.tools.ant.taskdefs.condition.Os.isFamily(org.apache.tools.ant.taskdefs.condition.Os.FAMILY_MAC)) {
+    createBuildTask(tasks, buildTaskConfig, 64, true)
+}

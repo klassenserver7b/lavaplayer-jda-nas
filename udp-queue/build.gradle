@@ -67,4 +67,4 @@ copyNatives.doLast {
 }
 
 compileJava.dependsOn(copyNatives)
-//compileJava.dependsOn(':udp-queue-natives:checkNatives')
+compileJava.dependsOn(':udp-queue-natives:checkNatives')

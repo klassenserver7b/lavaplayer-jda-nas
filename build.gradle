@@ -26,37 +26,9 @@ subprojects {
 
 import org.apache.tools.ant.taskdefs.condition.Os
 
-def isMuslSystem() {
-  if (!Os.isFamily(Os.FAMILY_UNIX) || Os.isFamily(Os.FAMILY_MAC)) {
-    return false
-  }
-  
-  // Check if we're running in Alpine (musl-based)
-  try {
-    def osRelease = new File('/etc/os-release')
-    if (osRelease.exists()) {
-      def content = osRelease.text
-      if (content.contains('ID=alpine') || content.contains('ID="alpine"')) {
-        return true
-      }
-    }
-    
-    // Alternative: check ldd version for musl
-    def process = ['ldd', '--version'].execute()
-    process.waitFor()
-    def output = process.text
-    if (output.contains('musl')) {
-      return true
-    }
-  } catch (Exception e) {
-    // Ignore exceptions, fall back to false
-  }
-  
-  return false
-}
-
-def getBuildParameters(base, bits) {
+def getBuildParameters(base, bits, musl = false) {
   def bitSuffix = (bits == 32) ? 'x86' : 'x86-64'
+  def muslSuffix = musl ? '-musl' : ''
 
   if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     return [
@@ -64,7 +36,8 @@ def getBuildParameters(base, bits) {
             'library': "${base}.dll",
             'setupArguments': ["-DBITZ:STRING=${bits}", '-A', (bits == 64 ? 'x64' : 'Win32')],
             'buildArguments': ['--config', 'Release'],
-            'env': [:]
+            'env': [:],
+            'useDocker': false
     ]
   } else if (Os.isFamily(Os.FAMILY_MAC)) {
     return [
@@ -72,20 +45,18 @@ def getBuildParameters(base, bits) {
             'library': "lib${base}.dylib",
             'setupArguments': ["-DBITZ:STRING=${bits}"],
             'buildArguments': [],
-            'env': ['CXXFLAGS': "-m${bits}", 'CFLAGS': "-m${bits}", 'LDFLAGS': "-m${bits}"]
+            'env': ['CXXFLAGS': "-m${bits}", 'CFLAGS': "-m${bits}", 'LDFLAGS': "-m${bits}"],
+            'useDocker': false
     ]
   } else {
-    def identifier = "linux-${bitSuffix}"
-    if (isMuslSystem()) {
-      identifier = "linux-${bitSuffix}-musl"
-    }
-    
     return [
-            'identifier': identifier,
+            'identifier': "linux-${bitSuffix}${muslSuffix}",
             'library': "lib${base}.so",
             'setupArguments': ["-DBITZ:STRING=${bits}"],
             'buildArguments': [],
-            'env': ['CXXFLAGS': "-m${bits}", 'CFLAGS': "-m${bits}", 'LDFLAGS': "-m${bits}"]
+            'env': ['CXXFLAGS': "-m${bits}", 'CFLAGS': "-m${bits}", 'LDFLAGS': "-m${bits}"],
+            'useDocker': musl,
+            'dockerImage': musl ? 'alpine:latest' : null
     ]
   }
 }
@@ -95,12 +66,12 @@ def getHomeDirectory() {
   return directory.name == 'jre' ? directory.parentFile.absolutePath : directory.absolutePath
 }
 
-def createBuildTask(tasksHolder, config, bits) {
-  def parameters = getBuildParameters(config.name, bits)
+def createBuildTask(tasksHolder, config, bits, musl = false) {
+  def parameters = getBuildParameters(config.name, bits, musl)
   def buildDirectory = "${config.buildBase}/${parameters.identifier}"
   def distDirectory = "${config.projectBase}/dist/${parameters.identifier}"
   def deployDirectory = "${config.deployBase}/src/main/resources/natives/${parameters.identifier}"
-  def taskBase = "${config.name}-${bits}"
+  def taskBase = musl ? "${config.name}-${bits}-musl" : "${config.name}-${bits}"
 
   if (Os.isFamily(Os.FAMILY_MAC) && bits != 64) {
     return
@@ -109,29 +80,84 @@ def createBuildTask(tasksHolder, config, bits) {
   parameters.env.put('DIST_DIR', distDirectory)
   parameters.env.put('JAVA_HOME', getHomeDirectory())
 
-  def setupTask = tasksHolder.create("${taskBase}-setup", Exec) {
-    doFirst {
-      if (config.setupDoFirst) {
-        config.setupDoFirst(config, bits)
+  def setupTask
+  def buildTask
+
+  if (parameters.useDocker) {
+    // Docker-based build for musl
+    setupTask = tasksHolder.create("${taskBase}-setup", Exec) {
+      doFirst {
+        if (config.setupDoFirst) {
+          config.setupDoFirst(config, bits)
+        }
+
+        file(buildDirectory).with {
+          it.deleteDir()
+          it.mkdirs()
+        }
       }
 
-      file(buildDirectory).with {
-        it.deleteDir()
-        it.mkdirs()
-      }
+      workingDir config.projectBase
+      executable 'docker'
+      args([
+        'run', '--rm',
+        '-v', "${config.projectBase}:/workspace",
+        '-v', "${distDirectory}:/dist",
+        '-w', "/workspace",
+        '-e', "DIST_DIR=/dist",
+        '-e', "JAVA_HOME=${getHomeDirectory()}",
+        parameters.dockerImage,
+        'sh', '-c', """
+          apk add --no-cache cmake make gcc musl-dev openjdk8 && \\
+          mkdir -p /workspace/build/${parameters.identifier} && \\
+          cd /workspace/build/${parameters.identifier} && \\
+          cmake ${parameters.setupArguments.join(' ')} ../..
+        """
+      ])
     }
 
-    workingDir buildDirectory
-    executable 'cmake'
-    args(parameters.setupArguments + ['../..'])
-    environment parameters.env
-  }
+    buildTask = tasksHolder.create("${taskBase}-build", Exec) {
+      workingDir config.projectBase
+      executable 'docker'
+      args([
+        'run', '--rm',
+        '-v', "${config.projectBase}:/workspace",
+        '-v', "${distDirectory}:/dist",
+        '-w', "/workspace/build/${parameters.identifier}",
+        '-e', "DIST_DIR=/dist",
+        parameters.dockerImage,
+        'sh', '-c', """
+          apk add --no-cache cmake make gcc musl-dev openjdk8 && \\
+          cmake --build . ${parameters.buildArguments.join(' ')}
+        """
+      ])
+    }
+  } else {
+    // Native build for glibc Linux, Windows, macOS
+    setupTask = tasksHolder.create("${taskBase}-setup", Exec) {
+      doFirst {
+        if (config.setupDoFirst) {
+          config.setupDoFirst(config, bits)
+        }
 
-  def buildTask = tasksHolder.create("${taskBase}-build", Exec) {
-    workingDir buildDirectory
-    executable 'cmake'
-    args(['--build', '.'] + parameters.buildArguments)
-    environment parameters.env
+        file(buildDirectory).with {
+          it.deleteDir()
+          it.mkdirs()
+        }
+      }
+
+      workingDir buildDirectory
+      executable 'cmake'
+      args(parameters.setupArguments + ['../..'])
+      environment parameters.env
+    }
+
+    buildTask = tasksHolder.create("${taskBase}-build", Exec) {
+      workingDir buildDirectory
+      executable 'cmake'
+      args(['--build', '.'] + parameters.buildArguments)
+      environment parameters.env
+    }
   }
 
 /*

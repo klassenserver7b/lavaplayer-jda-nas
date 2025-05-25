@@ -1,48 +1,56 @@
 #!/bin/bash
 
-# build-musl.sh - Script to build the musl variant using Docker
+# Build script for musl-libc variant
+# This script can be used as an alternative to the Gradle Docker integration
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-NC='\033[0m' # No Color
+PROJECT_ROOT=$(dirname "$0")
+NATIVE_DIR="$PROJECT_ROOT/udp-queue-natives"
+BUILD_DIR="$NATIVE_DIR/build/linux-x86-64-musl"
+DIST_DIR="$NATIVE_DIR/dist/linux-x86-64-musl"
 
-echo -e "${GREEN}Building UDP Queue Manager with musl-libc support${NC}"
+echo "Building udpqueue for musl-libc..."
 
-# Check if Docker is available
-if ! command -v docker &> /dev/null; then
-    echo -e "${RED}Docker is required but not installed. Please install Docker first.${NC}"
+# Ensure directories exist
+mkdir -p "$BUILD_DIR"
+mkdir -p "$DIST_DIR"
+
+# Check if we're in a musl environment
+if ! ldd --version 2>&1 | grep -q musl; then
+    echo "Warning: Not running in a musl environment. Consider using Alpine Linux or musl toolchain."
+fi
+
+# Set environment variables
+export DIST_DIR="$DIST_DIR"
+export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-1.8-openjdk}"
+
+if [ ! -d "$JAVA_HOME" ]; then
+    echo "Error: JAVA_HOME not found at $JAVA_HOME"
+    echo "Please set JAVA_HOME to your JDK installation"
     exit 1
 fi
 
-# Build the Docker image
-echo -e "${YELLOW}Building Alpine build environment...${NC}"
-docker build -t udp-queue-musl-builder -f Dockerfile.alpine .
+echo "Using JAVA_HOME: $JAVA_HOME"
+echo "Build directory: $BUILD_DIR"
+echo "Output directory: $DIST_DIR"
 
-# Run the build in the container
-echo -e "${YELLOW}Building native libraries for musl...${NC}"
-docker run --rm -v "$(pwd):/workspace" -w /workspace udp-queue-musl-builder ./gradlew :udp-queue-natives:compileNatives
+# Configure with CMake
+cd "$BUILD_DIR"
+cmake -DBITZ:STRING=64 "$NATIVE_DIR/udpqueue"
 
-# Check if the musl variant was built
-MUSL_LIB_PATH="udp-queue-natives/dist/linux-x86-64-musl/libudpqueue.so"
-if [ -f "$MUSL_LIB_PATH" ]; then
-    echo -e "${GREEN}Successfully built musl variant: $MUSL_LIB_PATH${NC}"
-    
-    # Show library info
-    echo -e "${YELLOW}Library information:${NC}"
-    docker run --rm -v "$(pwd):/workspace" -w /workspace udp-queue-musl-builder file "$MUSL_LIB_PATH"
-    docker run --rm -v "$(pwd):/workspace" -w /workspace udp-queue-musl-builder ldd "$MUSL_LIB_PATH" || echo "Static binary (good for musl)"
+# Build
+cmake --build .
+
+echo "Build completed. Library should be at: $DIST_DIR/libudpqueue.so"
+
+# Verify the library was built
+if [ -f "$DIST_DIR/libudpqueue.so" ]; then
+    echo "✓ Successfully built libudpqueue.so"
+    echo "Library info:"
+    file "$DIST_DIR/libudpqueue.so"
+    ldd "$DIST_DIR/libudpqueue.so" 2>/dev/null || echo "  (static binary or ldd not available)"
 else
-    echo -e "${RED}Failed to build musl variant${NC}"
+    echo "✗ Failed to build libudpqueue.so"
     exit 1
 fi
-
-# Copy natives to the Java project
-echo -e "${YELLOW}Copying natives to Java resources...${NC}"
-docker run --rm -v "$(pwd):/workspace" -w /workspace udp-queue-musl-builder ./gradlew :udp-queue:copyNatives
-
-echo -e "${GREEN}Build completed successfully!${NC}"
-echo -e "${YELLOW}The musl library is available at: $MUSL_LIB_PATH${NC}"
