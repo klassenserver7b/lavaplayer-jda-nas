@@ -1,0 +1,30 @@
+FROM openjdk:8-jdk-alpine
+
+# Install build dependencies
+RUN apk add --no-cache \
+    cmake \
+    make \
+    gcc \
+    g++ \
+    musl-dev \
+    linux-headers
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy the project
+COPY . .
+
+# Make gradlew executable
+RUN chmod +x ./gradlew
+
+# Set JAVA_HOME explicitly (Alpine OpenJDK doesn't always set this correctly)
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8-openjdk
+
+# Build the project
+RUN ./gradlew :udp-queue-natives:compileNatives
+
+# Optional: Run tests to verify the build
+# RUN ./gradlew test
+
+CMD ["sh"]
