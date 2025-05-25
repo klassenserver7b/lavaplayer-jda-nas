@@ -1,38 +1,14 @@
-plugins {
-    id 'java-library'
-    id 'maven-publish'
-}
+task compileNatives() { }
+task checkNatives() { }
 
-dependencies {
-    // Add any dependencies needed for the native module
-}
+def buildTaskConfig = [
+    buildBase: buildDir,
+    projectBase: projectDir,
+    deployBase: project(':udp-queue').projectDir,
+    compileTask: tasks.compileNatives,
+    checkTask: tasks.checkNatives,
+    name: 'udpqueue'
+]
 
-// This task collects all native libraries from the dist directory
-task collectNativeLibraries(type: Copy) {
-    from fileTree(dir: "${projectDir}/dist").include('**/*.so', '**/*.dll', '**/*.dylib')
-    into "${buildDir}/resources/main/natives"
-}
-
-// Make sure the native libraries are included in the JAR
-processResources.dependsOn collectNativeLibraries
-
-// Define what to publish
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-
-            pom {
-                name = 'UDP Queue Natives'
-                description = 'Native libraries for UDP Queue'
-
-                licenses {
-                    license {
-                        name = 'The Apache License, Version 2.0'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-            }
-        }
-    }
-}
+createBuildTask(tasks, buildTaskConfig, 32)
+createBuildTask(tasks, buildTaskConfig, 64)
