@@ -23,9 +23,42 @@ subprojects {
   }
 }
 
+// Detect libc implementation by checking /proc/self/maps
+def detectLibc() {
+
+  try {
+    //def process = "ldd --version".execute()
+    //process.waitFor()
+    //def output = process.text
+    //if (output.contains("GNU libc") || output.contains("GLIBC")) {
+    //    println "Detected: glibc"
+    //    return ""
+    //} else if (output.contains("musl libc")) {
+    //    println "Detected: musl-libc"
+    //    return "-musl"
+    //}
+    
+    def mapsFile = new File("/proc/self/maps")
+    if (mapsFile.exists()) {
+      mapsFile.eachLine { line ->
+        if (line.contains("-musl-")) {
+          println "Detected musl libc"
+          return "-musl"
+        }
+      }
+    }
+  } catch (Exception e) {
+    println "Failed to detect libc type, assuming glibc: ${e.message}"
+  }
+  
+  // Default assumption: glibc
+  println "Didnt detect musl - assuming glibc"
+  return ""
+}
+
+ext.libcType = detectLibc()
 
 import org.apache.tools.ant.taskdefs.condition.Os
-
 def getBuildParameters(base, bits) {
   def bitSuffix = (bits == 32) ? 'x86' : 'x86-64'
 
@@ -47,7 +80,7 @@ def getBuildParameters(base, bits) {
     ]
   } else {
     return [
-            'identifier': "linux-${bitSuffix}",
+            'identifier': "linux${libcType}-${bitSuffix}",
             'library': "lib${base}.so",
             'setupArguments': ["-DBITZ:STRING=${bits}"],
             'buildArguments': [],
@@ -63,6 +96,7 @@ def getHomeDirectory() {
 
 def createBuildTask(tasksHolder, config, bits) {
   def parameters = getBuildParameters(config.name, bits)
+  println "Creating build task for ${config.name} (${bits}-bit) with identifier: ${parameters.identifier}"
   def buildDirectory = "${config.buildBase}/${parameters.identifier}"
   def distDirectory = "${config.projectBase}/dist/${parameters.identifier}"
   def deployDirectory = "${config.deployBase}/src/main/resources/natives/${parameters.identifier}"

@@ -9,6 +9,5 @@ def buildTaskConfig = [
     checkTask: tasks.checkNatives,
     name: 'udpqueue'
 ]
-
 createBuildTask(tasks, buildTaskConfig, 32)
 createBuildTask(tasks, buildTaskConfig, 64)
