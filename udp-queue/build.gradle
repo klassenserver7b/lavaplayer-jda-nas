@@ -23,7 +23,7 @@ java {
 }
 
 dependencies {
-    api "com.github.whya5448.lavaplayer:lavaplayer-common:1.3.78.6"
+    api "dev.arbjerg:lavaplayer:2.2.3"
 
     compileOnly "org.slf4j:slf4j-api:$slf4jVersion"
 }

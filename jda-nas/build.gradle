@@ -21,7 +21,7 @@ dependencies {
 
   compileOnly "org.slf4j:slf4j-api:$slf4jVersion"
 
-  compileOnly "net.dv8tion:JDA:5.0.0-alpha.9"
+  compileOnly "net.dv8tion:JDA:5.5.1"
 }
 
 /*
