@@ -3,7 +3,7 @@ plugins {
 }
 
 ext.moduleName = 'lavaplayer-jda-nas'
-version = '1.0.6.4'
+version = '1.7.1.0'
 
 publishing {
   publications {
