@@ -13,7 +13,7 @@ code and also sends them from there. This way it is unaffected by GC pauses shor
 Replace `x.y.z.m` with the latest version number
 
 * Repository: https://jitpack.io
-* Artifact: **com.github.whya5448.lavaplayer-jda-nas:jda-nas:x.y.z.m**
+* Artifact: **com.github.klassenserver7b.lavaplayer-jda-nas:jda-nas:x.y.z.m**
 
 Using in Gradle:
 
@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.whya5448.lavaplayer-jda-nas:jda-nas:x.y.z.m'
+    implementation 'com.github.klassenserver7b.lavaplayer-jda-nas:jda-nas:x.y.z.m'
 }
 ```
 
@@ -40,7 +40,7 @@ Using in Maven:
 </repositories>
 
 <dependency>
-    <groupId>com.github.whya5448.lavaplayer-jda-nas:jda-nas</groupId>
+    <groupId>com.github.klassenserver7b.lavaplayer-jda-nas:jda-nas</groupId>
     <artifactId>jda-nas</artifactId>
     <version>x.y.z.m</version>
 </dependency>
